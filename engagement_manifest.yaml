@@ -1,0 +1,31 @@
+# VulnHunter Engagement Manifest — PRD §5.3
+# Copy and customize this file for each security test engagement.
+
+target:
+  hosts:
+    - app.example.com
+    - api.example.com
+
+scope:
+  allow_login: true
+  allow_file_upload: false
+  allow_state_change: low        # low | medium | high
+  allow_destructive_actions: false
+
+roles:
+  - name: guest
+  - name: user
+    credentials:
+      username: testuser
+      password: testpass123
+  - name: admin
+    credentials:
+      username: admin
+      password: admin123
+
+testing_profile:
+  depth: standard                # quick | standard | deep
+  standards:
+    - WSTG
+    - ASVS
+    - OWASP_TOP10_2025
