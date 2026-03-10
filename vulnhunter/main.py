@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from vulnhunter import __version__
-from vulnhunter.api import reports, targets, tasks
+from vulnhunter.api import admin, reports, targets, tasks
 from vulnhunter.api.schemas import HealthResponse
 from vulnhunter.config import settings
 
@@ -56,6 +56,7 @@ app.add_middleware(
 app.include_router(targets.router, prefix="/api/v1")
 app.include_router(tasks.router, prefix="/api/v1")
 app.include_router(reports.router, prefix="/api/v1")
+app.include_router(admin.router, prefix="/api/v1")
 
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
