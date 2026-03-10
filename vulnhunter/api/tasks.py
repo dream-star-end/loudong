@@ -13,8 +13,10 @@ from vulnhunter.agents.evidence_agent import EvidenceAgent
 from vulnhunter.agents.input_agent import InputAgent
 from vulnhunter.agents.orchestrator import OrchestratorAgent
 from vulnhunter.agents.recon import ReconAgent
+from vulnhunter.agents.scan_simulator import generate_findings
 from vulnhunter.api.schemas import TaskCreate, TaskResponse
 from vulnhunter.db.session import get_db
+from vulnhunter.models.finding import Finding
 from vulnhunter.models.target import Target
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -50,9 +52,29 @@ async def create_task(
     orchestrator = _build_orchestrator()
     agent_result = await orchestrator.run(context)
 
+    sim_findings = generate_findings(body.depth)
+    for sf in sim_findings:
+        finding = Finding(
+            target_id=target.id,
+            title=sf.title,
+            category=sf.category,
+            wstg_refs=sf.wstg_refs,
+            asvs_refs=sf.asvs_refs,
+            severity=sf.severity,
+            confidence=sf.confidence,
+            description=sf.description,
+            status="confirmed" if sf.confidence >= 0.9 else "needs_review",
+        )
+        db.add(finding)
+
+    target.status = "scanned"
+    await db.commit()
+
     return {
         "task_id": str(uuid.uuid4()),
         "target_id": target.id,
         "status": agent_result.status.value,
         "plan": agent_result.outputs.get("plan", []),
+        "sub_results": agent_result.outputs.get("sub_results", []),
+        "findings_count": len(sim_findings),
     }

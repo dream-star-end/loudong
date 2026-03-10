@@ -31,6 +31,8 @@ class TaskResponse(BaseModel):
     target_id: str
     status: str
     plan: list[dict[str, object]]
+    sub_results: list[dict[str, object]] = []
+    findings_count: int = 0
 
 
 class FindingResponse(BaseModel):
@@ -51,3 +53,12 @@ class HealthResponse(BaseModel):
     status: str
     version: str
     services: dict[str, str]
+
+
+class StatsResponse(BaseModel):
+    total_targets: int
+    total_scans: int
+    total_findings: int
+    severity_breakdown: dict[str, int]
+    category_breakdown: dict[str, int]
+    recent_findings: list[FindingResponse]

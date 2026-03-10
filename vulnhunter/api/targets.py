@@ -1,11 +1,12 @@
 """Target management endpoints."""
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from vulnhunter.api.schemas import TargetCreate, TargetResponse
 from vulnhunter.db.session import get_db
+from vulnhunter.models.finding import Finding
 from vulnhunter.models.target import Target
 
 router = APIRouter(prefix="/targets", tags=["targets"])
@@ -40,3 +41,14 @@ async def get_target(target_id: str, db: AsyncSession = Depends(get_db)) -> Targ
     if not target:
         raise HTTPException(status_code=404, detail="Target not found")
     return target
+
+
+@router.delete("/{target_id}", status_code=204)
+async def delete_target(target_id: str, db: AsyncSession = Depends(get_db)) -> None:
+    result = await db.execute(select(Target).where(Target.id == target_id))
+    target = result.scalar_one_or_none()
+    if not target:
+        raise HTTPException(status_code=404, detail="Target not found")
+    await db.execute(delete(Finding).where(Finding.target_id == target_id))
+    await db.delete(target)
+    await db.commit()
