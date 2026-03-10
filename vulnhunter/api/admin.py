@@ -1,4 +1,4 @@
-"""Admin endpoints — audit logs, HITL approvals, system status."""
+"""Admin endpoints — audit logs, HITL approvals, priority matrix, metrics."""
 
 from dataclasses import asdict
 
@@ -6,6 +6,7 @@ from fastapi import APIRouter
 
 from vulnhunter.core.audit import audit_logger
 from vulnhunter.core.hitl import approval_queue
+from vulnhunter.core.priority import get_all_priorities
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -36,3 +37,8 @@ async def approve_action(request_id: str) -> dict:
 async def reject_action(request_id: str) -> dict:
     ok = approval_queue.reject(request_id)
     return {"success": ok}
+
+
+@router.get("/priority-matrix")
+async def detection_priority_matrix() -> list[dict]:
+    return get_all_priorities()

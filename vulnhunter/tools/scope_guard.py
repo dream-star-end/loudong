@@ -28,18 +28,27 @@ class ScopeViolationError(Exception):
 
 class ScopeGuard:
     def __init__(self, allowed_hosts: list[str], max_risk_level: int = 1) -> None:
-        self.allowed_hosts = set(allowed_hosts)
+        self.allowed_hosts: set[str] = set()
+        self._allowed_hostnames: set[str] = set()
+        for h in allowed_hosts:
+            self.allowed_hosts.add(h)
+            self._allowed_hostnames.add(h.split(":")[0])
         self.max_risk_level = max_risk_level
 
     def check_url(self, url: str) -> None:
         parsed = urlparse(url)
         hostname = parsed.hostname or ""
+        netloc = parsed.netloc or ""
 
-        if hostname in self.allowed_hosts:
+        if hostname in self.allowed_hosts or hostname in self._allowed_hostnames:
+            return
+        if netloc in self.allowed_hosts:
             return
 
         try:
             addr = ipaddress.ip_address(hostname)
+            if addr.is_loopback and ("localhost" in self._allowed_hostnames or "127.0.0.1" in self._allowed_hostnames):
+                return
             for net in PRIVATE_NETWORKS:
                 if addr in net:
                     raise ScopeViolationError(f"Blocked private/reserved address: {hostname}")
@@ -59,7 +68,7 @@ class ScopeGuard:
     def validate_redirect(self, original_url: str, redirect_url: str) -> None:
         orig_host = urlparse(original_url).hostname
         redir_host = urlparse(redirect_url).hostname
-        if redir_host and redir_host not in self.allowed_hosts:
+        if redir_host and redir_host not in self.allowed_hosts and redir_host not in self._allowed_hostnames:
             logger.warning(
                 "Redirect from %s to %s blocked (out of scope)", orig_host, redir_host
             )
